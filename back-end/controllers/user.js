@@ -1,26 +1,40 @@
 const UserSchema = require('../models/user')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const joi = require('joi')
 require('dotenv/config')
 
 module.exports.signup = async function (req, res) {
-    const user = new UserSchema({
-        firstname: req.body.firstname,
-        lastname: req.body.lastname,
-        username: req.body.username,
-        hashPassword: await bcrypt.hash(req.body.password, 10)
+    const validation = joi.object().keys({
+        firstname: joi.string().alphanum().min(1).required(),
+        lastname: joi.string().alphanum().min(1).required(),
+        username: joi.string().min(1).required(),
+        password: joi.string().min(4).max(72).required()
     })
-    try {
-        await user.save()
-        let token = jwt.sign({
-            id: user._id,
-            firstname: user.firstname,
-            lastname: user.lastname,
-            username: user.username,
-        }, process.env.JWT_KEY)
-        res.json({ success: true, data: { token: token } })
-    } catch (error) {
-        res.json(error.message)
+
+    const { value, error } = validation.validate(req.body)
+    if(error) {
+        res.json({ success: false, data: { message: 'invalid input'}})
+    }
+    else {
+        const user = new UserSchema({
+            firstname: value.firstname,
+            lastname: value.lastname,
+            username: value.username,
+            hashPassword: await bcrypt.hash(value.password, 10)
+        })
+        try {
+            await user.save()
+            let token = jwt.sign({
+                id: user._id,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                username: user.username,
+            }, process.env.JWT_KEY)
+            res.json({ success: true, data: { token: token } })
+        } catch (error) {
+            res.json(error.message)
+        }
     }
 }
 
