@@ -8,9 +8,9 @@ module.exports.createMessage = async function(req, res) {
     })
     try {
         await message.save()
-        res.json({ success: true })
+        res.json({ success: true, data: { message: message} })
     } catch (error) {
-        res.json(error.message)
+        res.json({ success: false })
     }
 }
 
@@ -24,4 +24,13 @@ module.exports.getMessages = async function(req, res) {
         res.json(error.message)
     }
     
+}
+
+module.exports.deleteMessage = async function(req, res) {
+    const deletedMessage = await MessageSchema.findByIdAndDelete(req.body.messageId)
+    if(deletedMessage) {
+        res.json({success: true, data: { message: deletedMessage}})
+    } else {
+        res.json({success: false})
+    }
 }

@@ -53,8 +53,12 @@ io.on('connection', (socket) => {
     const room = socket.handshake.query.room
     socket.join(room)
 
-    socket.on('message', () => {
-        socket.to(room).emit('new message arrived')
+    socket.on('message', (data) => {
+        socket.to(room).emit('new message arrived', data)
+    })
+
+    socket.on('delete message', (data) => {
+        socket.to(room).emit('deleted message', data)
     })
 
     socket.on('leave room', () => {

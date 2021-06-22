@@ -1,13 +1,14 @@
 const ConversationSchema = require('../models/conversation')
+const _ = require('lodash')
 
 module.exports.createConversation = async function(req, res) {
-    const checkConversation = await ConversationSchema.findOne({userIds: req.body.userIds})
+    const checkConversation = await ConversationSchema.findOne({userIds: _.sortBy(req.body.userIds)})
     if(checkConversation) {
         res.json({ success: true , data: { conversationId: checkConversation._id}})
     }
     else {
         const conversation = new ConversationSchema({
-            userIds: req.body.userIds
+            userIds: _.sortBy(req.body.userIds)
         })
         try {
             await conversation.save()
