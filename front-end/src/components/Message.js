@@ -13,7 +13,7 @@ function Message({ messageid, message, setMessages, userId, usernames, socket}) 
 
     useEffect(() => {
         axios.get(
-            'http://localhost:8080/usernames',
+            'http://localhost:8080/username',
             {
                 params: {
                     id: userId

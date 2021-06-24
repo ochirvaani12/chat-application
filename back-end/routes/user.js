@@ -5,7 +5,9 @@ const auth = require('../controllers/checkToken')
 
 router.post('/signup', user.signup)
 router.post('/login', user.login)
-router.get('/usernames', auth.checkToken, user.getUsernames)
+router.get('/username', auth.checkToken, user.getUsername)
 router.get('/search', auth.checkToken, user.searchByUsername)
+router.get('/getusers', auth.checkToken, user.getusers)
+
 
 module.exports = router

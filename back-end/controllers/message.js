@@ -19,9 +19,9 @@ module.exports.getMessages = async function(req, res) {
         const messages = await MessageSchema.find({
             conversationId: req.query.conversationId
         })
-        res.json(messages)
+        res.json({success: true, data: { messages: messages}})
     } catch (error) {
-        res.json(error.message)
+        res.json({success: false})
     }
     
 }

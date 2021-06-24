@@ -54,7 +54,7 @@ module.exports.login = async function (req, res) {
     } else res.json({ success: false, data: { message: 'password or username is wrong' } })
 }
 
-module.exports.getUsernames = async function (req, res) {
+module.exports.getUsername = async function (req, res) {
     try {
         const user = await UserSchema.findById(req.query.id)
         res.json({success: true, data: {username: user.username, id: user._id}});
@@ -69,5 +69,14 @@ module.exports.searchByUsername = async function (req, res) {
         res.json({success: true, data: {username: user.username, id: user._id}});
     } catch (error) {
         res.json({success: false, data: { message: 'user is not found!!!'}})
+    }
+}
+
+module.exports.getusers = async function (req, res) {
+    try {
+        const users = await UserSchema.find({})
+        res.json({success: true, data: {users: users}})
+    } catch(error) {
+        res.json({success: false, data: { message: 'server error'}})
     }
 }

@@ -45,14 +45,16 @@ server.listen(8081, () => {
     console.log('Socket io server is running on 8081 port')
 })
 
-// SOCKET IO EVENTS
+// SOCKET IO
 io.on('connection', (socket) => {
 
     console.log('User connected:' + socket.id)
     
+    // CONNECTING TO ROOM
     const room = socket.handshake.query.room
     socket.join(room)
 
+    // LISTENING EVENTS
     socket.on('message', (data) => {
         socket.to(room).emit('new message arrived', data)
     })
@@ -61,10 +63,16 @@ io.on('connection', (socket) => {
         socket.to(room).emit('deleted message', data)
     })
 
+    socket.on('typing', (data) => {
+        socket.to(room).emit('typing', data)
+    })
+
+    // LEAVING ROOM
     socket.on('leave room', () => {
         socket.leave(room)
     })
 
+    // DISCONNECTING USER
     socket.on('disconnect', () => {
         console.log('user disconnected')
     })

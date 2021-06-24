@@ -13,8 +13,8 @@ function Chat({match}) {
     const [conversationId] = useState(match.params.conversationId)
     const [messages, setMessages] = useState([])
     const { user } = useContext(UserContext)
-
     const [currentMessage, setCurrentMessage] = useState('')
+    const [typingmessage, setTypingmessage] = useState('')
 
     useEffect(() => {
         if(conversationId) {
@@ -25,14 +25,16 @@ function Chat({match}) {
                         conversationId: conversationId
                     },
                     headers: header
-                }).then((response) => {
-                    setMessages(response.data)
                 }
-            )
+            ).then((response) => {
+                if(response.data.success){
+                    setMessages(response.data.data.messages)
+                }
+            })
         }
     }, [])
 
-
+    // CONNECTING TO SOCKET SERVER    
     useEffect(() => {
         socket = io('http://localhost:8081', {query: `room=${conversationId}`})
 
@@ -42,6 +44,7 @@ function Chat({match}) {
         }
     }, [])
 
+    // HANDLING NEW OR DELETED MESSAGES
     useEffect(() => {
         socket.on('new message arrived', (message) => {
             setMessages((messages) => [...messages, message])
@@ -49,6 +52,11 @@ function Chat({match}) {
 
         socket.on('deleted message', (deletedMessage) => {
             setMessages((messages) => (messages.filter(message => !_.isEqual(message, deletedMessage))))
+        })
+
+        socket.on('typing', (data) => {
+            setTypingmessage(data.message)
+            setTimeout(() => setTypingmessage(''), data.timeout)
         })
     },[])
 
@@ -74,6 +82,24 @@ function Chat({match}) {
         setCurrentMessage('')
     }
 
+    // LISTENING INPUT
+    const listeningInput = (event) => {
+        event.preventDefault()
+
+        if (event.which === 13) {
+            socket.emit('typing', { message:'', timeout: 0});
+            sendMessage(event)
+        } 
+        else if (event.which === 8) {
+            socket.emit('typing', { message:'', timeout: 0});
+            setCurrentMessage(currentMessage.slice(0, -1))
+        } 
+        else if(event.which > 31) {
+            socket.emit('typing', { message:`${user.username} is typing ...`, timeout: 1000});
+            setCurrentMessage(currentMessage + event.key)
+        }
+    }
+
     return (
         <div className="container mx-auto w-10/12 my-6 p-6 bg-gray-300 rounded-lg">
             {messages.map(
@@ -87,9 +113,10 @@ function Chat({match}) {
                     />
                 )
             }
+            <div>{typingmessage}</div>
             <div className="w-full flex flex-row">
                 <input
-                    onChange={(e) => setCurrentMessage(e.target.value)}
+                    onKeyDown={listeningInput}
                     type="text"
                     value={currentMessage}
                     className="bg-gray-500 text-black w-4/5 rounded-lg"

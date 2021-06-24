@@ -1,4 +1,5 @@
 const ConversationSchema = require('../models/conversation')
+const MessageSchema = require('../models/message')
 const _ = require('lodash')
 
 module.exports.createConversation = async function(req, res) {
@@ -34,6 +35,17 @@ module.exports.getConversation = async function(req, res) {
         const conversation = await ConversationSchema.findById(req.query.id)
         res.json({success: true, data: { userIds: conversation.userIds}})
     } catch (error) {
-        res.json(res.json({success: false, data: { message: 'conversation is not found!!!'}}))
+        res.json({success: false, data: { message: 'conversation is not found!!!'}})
     }
+}
+
+module.exports.deleteConversation = async function(req, res) {
+    const deletedConversation = await ConversationSchema.findByIdAndRemove(req.body.id)
+    if(deletedConversation){
+        if(deletedConversation) {
+            const deletedMessages = await MessageSchema.remove({conversationId: deletedConversation._id})
+            res.json({success: true})
+        }
+    }
+    else res.json({success: false, data: { message: 'conversation is not found!!!'}})
 }

@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react'
+import UserInChat from '../components/UserInChat'
+import Userlist from '../components/Userlist'
 import axios from 'axios'
 import { UserContext } from '../context/auth'
 import { Link, useHistory } from 'react-router-dom'
@@ -8,46 +10,13 @@ function Chats() {
     let history = useHistory()
     const header = {'Authorization': `Bearer ${localStorage.getItem('jwt')}`}
     const { user } = useContext(UserContext)
+
     const [conversations, setConversations] = useState([])
-    const [search, setSearch] = useState('')
-    const [foundUser, setFoundUser] = useState(null)
-
-    const createConversation = () => {
-        axios.post('http://localhost:8080/chat', 
-            {
-                userIds: [user.id, foundUser.id]
-            },
-            {
-                headers: header
-            }
-        ).then((response) => {
-            if(response.data.success){
-                history.push(`/chat/${response.data.data.conversationId}`)
-            }
-        })
-    }
-
-    const searchUser = (event) => {
-        event.preventDefault()
-        if(search === user.username) return
-        axios.get(
-            'http://localhost:8080/search',
-            {
-                params: {
-                    username: search
-                },
-                headers: header
-            }
-        ).then((response) => {
-            console.log(response)
-            if(response.data.success) {
-                setFoundUser(response.data.data)
-            }
-            else setFoundUser('user is not found!!')
-        })
-    }
+    const [usersDefault, setUsersDefault] = useState([])
+    const [users, setUsers] = useState([])
 
     useEffect(() => {
+        // GETTING CONVERSATION
         if(user.id){
             axios.get(
                 'http://localhost:8080/chats',
@@ -63,47 +32,112 @@ function Chats() {
         } else {
             history.push('/')
         }
+
+        // GETTING USERS
+        axios.get(
+            'http://localhost:8080/getusers',
+            {
+                headers: header
+            }
+        ).then((response) => {
+            if(response.data.success) {
+                setUsersDefault(response.data.data.users)
+            }
+        })
     }, [])
 
+    // FILTERING USERS
+    const filterUsers = (event) => {
+        event.preventDefault()
+        const filtered = usersDefault.filter(userDefault => {
+            return userDefault.username.toLowerCase().includes(event.target.value.toLowerCase())
+        })
+        setUsers(filtered)
+
+        if(event.target.value === '') {
+            setUsers([])
+        }
+    }
+
+    // HANDLING DELETE BUTTON
+    const [buttonid, setButtonid] = useState('')
+    
+    const renderDeleteButton = (event) => {
+        event.preventDefault()
+        const messageid = event.target.attributes.conversationid.value
+        setButtonid(messageid)
+    }
+
+    const removeDeleteButton = (event) => {
+        event.preventDefault()
+        setButtonid('')
+    }
+
+    // DELETE CONVERSATION
+    const deleteConversation = (event) => {
+        event.preventDefault()
+        const conversationid = event.target.attributes.conversationid.value
+        axios.delete(
+            'http://localhost:8080/chat',
+            {
+                headers: header,
+                data: {
+                    id: conversationid
+                }
+            }
+        ).then((response) => {
+            if(response.data.success) {
+                axios.get(
+                    'http://localhost:8080/chats',
+                    {
+                        params: { 
+                            id: user.id
+                        },
+                        headers: header
+                    }
+                ).then((response) => {
+                    if(response.data.success) setConversations(response.data.data.conversations)
+                })
+            }
+        })
+    }
+    
+
     return (
-        <div className="container mx-auto my-3 w-10/12 flex justify-center items-center flex-col">
-            <div className="w-full flex justify-center items-center">
-                <input 
+        <div className="flex flex-row">
+            <div className="w-2/5 flex flex-col justify-center items-center my-6">
+                <input
                     type="text" 
-                    placeholder="find your friend..." 
-                    className="bg-gray-200 w-2/5 h-10 rounded-md p-2 mx-1"
-                    onChange={(e) => setSearch(e.target.value)}
-                    value={search}
+                    placeholder="find your friend..."  
+                    className="w-4/5 h-10 bg-gray-200 rounded-md p-2 mx-1"
+                    onChange={filterUsers}
                 />
-                <button 
-                    onClick={searchUser} 
-                    className="w-1/5 group relative flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                    search
-                </button>
+                {users.map((chatableUser) => chatableUser._id !== user.id ? <Userlist id={chatableUser._id} username={chatableUser.username} /> : <></>)}
             </div>
-            {foundUser === 'user is not found!!' ? 
-                <div className="w-4/5 bg-red-500 h-14 rounded-lg my-3 text-lg font-medium text-white flex flex-row justify-center items-center">User is not found !!!</div> : 
-                <></>
-            }
-            {foundUser && foundUser !== 'user is not found!!' ?
-                <button
-                        onClick = {() => createConversation()}
-                        className="w-4/5 bg-yellow-300 h-14 rounded-lg my-3 text-lg font-medium text-white flex flex-row justify-center items-center"
+            <div className="w-3/5 flex flex-col justify-center items-center">
+                <div className="font-semibold my-6 text-xl">Contineue your chat with your friends</div>
+                {conversations.map((conversation) => 
+                    <Link
+                        onMouseEnter={renderDeleteButton}
+                        onMouseLeave={removeDeleteButton}
+                        conversationid={conversation._id}
+                        to={`/chat/${conversation._id}`}
+                        className="w-4/5 bg-purple-500 h-14 rounded-lg my-3 text-lg font-medium text-white flex flex-row justify-center items-center relative"
                     >
-                        chat with {foundUser.username}
-                </button> :
-                <></>
-            }
-            {conversations.map((conversation, index) => 
-                <Link 
-                    to={`/chat/${conversation._id}`}
-                    className="w-4/5 bg-purple-500 h-14 rounded-lg my-3 text-lg font-medium text-white flex flex-row justify-center items-center"
-                >
-                    Room {index+1}
-                </Link>
-            )}
-        </div>
+                        {conversation.userIds.map(userid => userid !== user.id ? <UserInChat userid={userid} /> : <></>)}
+                        {conversation._id === buttonid ?
+                            <button
+                                onClick={deleteConversation}
+                                conversationid={conversation._id} 
+                                className="w-7 h-7 rounded-lg bg-red-500 absolute right-3 top-3" 
+                            >
+                                X
+                            </button> : <></>
+                        }
+                    </Link>
+                )}
+            </div>
+        </div>    
     )
 }
 
